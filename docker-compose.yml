@@ -27,7 +27,7 @@ services:
     depends_on:
     - zookeeper
     environment:
-      KAFKA_LOG_RETENTION_HOURS: 24 # 資料保留24hr
+      KAFKA_LOG_RETENTION_HOURS: 24 # save data for 24hr
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       # This is required when you are running with a single-node cluster
