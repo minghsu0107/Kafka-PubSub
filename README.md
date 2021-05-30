@@ -1,4 +1,4 @@
-# Kafka Starter Template
+# Kafka PubSub Starter Template
 
 This example project shows a basic setup of Kafka publisher / subscriber using [Watermill](https://watermill.io/). The application runs in a loop, consuming events from a Kafka topic, modyfing them and publishing to another topic.
 
