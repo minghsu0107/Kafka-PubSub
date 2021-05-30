@@ -1,0 +1,40 @@
+version: '3'
+services:
+  server:
+    image: golang:1.12
+    restart: unless-stopped
+    depends_on:
+    - kafka
+    volumes:
+    - .:/app
+    - $GOPATH/pkg/mod:/go/pkg/mod
+    working_dir: /app
+    command: go run main.go
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    logging:
+      driver: none
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    logging:
+      driver: none
+    restart: unless-stopped
+    depends_on:
+    - zookeeper
+    environment:
+      KAFKA_LOG_RETENTION_HOURS: 24 # 資料保留24hr
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      # This is required when you are running with a single-node cluster
+      # specify the replication factor for the __consumer_offsets topic
+      # __consumer_offsets topic preserves consumer offsets when consumer group commits offsets to Kafka
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      # when applications attempt to produce, consume, or fetch metadata for a non-existent topic, 
+      # Kafka will automatically create the topic with the default replication factor and number of partitions
+      # which is true by default
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
