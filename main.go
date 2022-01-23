@@ -117,6 +117,11 @@ func createPublisher() message.Publisher {
 
 // createSubscriber is a helper function similar to the previous one, but in this case it creates a Subscriber.
 func createSubscriber(consumerGroup string) message.Subscriber {
+	config := sarama.NewConfig()
+	config.Consumer.Fetch.Default = 1024 * 1024
+	config.Consumer.Offsets.AutoCommit.Enable = true
+	config.Consumer.Offsets.AutoCommit.Interval = 1 * time.Second
+	
 	kafkaSubscriber, err := kafka.NewSubscriber(
 		kafka.SubscriberConfig{
 			Brokers:     brokers,
@@ -127,7 +132,7 @@ func createSubscriber(consumerGroup string) message.Subscriber {
 				NumPartitions:     2, // number of partitions
 				ReplicationFactor: 2, // number of replications of each partition
 			},
-			// OverwriteSaramaConfig: &sarama.Config{},
+			OverwriteSaramaConfig: config,
 		},
 		logger,
 	)
