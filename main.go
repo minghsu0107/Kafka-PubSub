@@ -126,10 +126,12 @@ func createSubscriber(consumerGroup string) message.Subscriber {
 		kafka.SubscriberConfig{
 			Brokers:     brokers,
 			Unmarshaler: marshaler,
-			// When empty, all messages sent after subscription from all partitions will be returned (process each partition in separate goroutines)
+			// When empty, if read offset from latest, then all messages sent after subscription from all partitions will be returned (process each partition in separate goroutines)
 			// this way, we disregard consumer group and assign partitions to the consumer directly
-			// assign mode does not affect offsets of other consumer groups
+			// assign mode does not affect offsets of other consumers and consumer groups
 			ConsumerGroup: consumerGroup, // every handler will use a separate consumer group
+			// Kafka automatically generates a consumer.id which is used by itself to identify the active consumers in a consumer group
+			// so it is not possible to manually set the consumer.id for Kafka Consumers
 			InitializeTopicDetails: &sarama.TopicDetail{
 				NumPartitions:     2, // number of partitions
 				ReplicationFactor: 2, // number of replications of each partition
