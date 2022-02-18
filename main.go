@@ -121,7 +121,7 @@ func createSubscriber(consumerGroup string) message.Subscriber {
 	config.Consumer.Fetch.Default = 1024 * 1024
 	config.Consumer.Offsets.AutoCommit.Enable = true
 	config.Consumer.Offsets.AutoCommit.Interval = 1 * time.Second
-	
+
 	kafkaSubscriber, err := kafka.NewSubscriber(
 		kafka.SubscriberConfig{
 			Brokers:     brokers,

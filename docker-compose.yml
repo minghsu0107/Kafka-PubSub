@@ -1,7 +1,7 @@
 version: '3'
 services:
   server:
-    image: golang:1.15
+    image: golang:1.17
     restart: unless-stopped
     depends_on:
     - kafka
@@ -12,25 +12,21 @@ services:
     command: go run main.go
 
   zookeeper:
-    image: confluentinc/cp-zookeeper:latest
-    logging:
-      driver: none
+    image: confluentinc/cp-zookeeper:7.0.1
     restart: unless-stopped
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
 
   kafka:
-    image: confluentinc/cp-kafka:latest
-    logging:
-      driver: none
+    image: confluentinc/cp-kafka:7.0.1
     restart: unless-stopped
     depends_on:
     - zookeeper
     environment:
-      KAFKA_LOG_RETENTION_HOURS: 24 # save data for 24hr
+      KAFKA_LOG_RETENTION_MINUTES: 1440 # save data for 24hrs
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       # This is required when you are running with a single-node cluster
       # specify the replication factor for the __consumer_offsets topic
       # __consumer_offsets topic preserves consumer offsets when consumer group commits offsets to Kafka
