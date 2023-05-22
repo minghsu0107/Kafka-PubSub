@@ -58,7 +58,7 @@ func main() {
 		publisher,
 		// the original message is fetched by Kafka client and send to watermill's channel
 		// if handler returns error and exeeds max retries, the router marks the watermill's message as NACKed
-		// -> resend to watermill's channel again (which is a unbuffered channel -> maintain msg order)
+		// -> resend to watermill's channel again (which is a unbuffered channel -> block when there is no msg reader)
 		// otherwise, marks the watermill's message as ACKed
 		// -> the original message is marked as consumed, committed offset += 1 and wil be auto-committed soon
 		func(msg *message.Message) ([]*message.Message, error) {
