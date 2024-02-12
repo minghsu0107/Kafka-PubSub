@@ -1,27 +1,27 @@
 version: '3'
 services:
   server:
-    image: golang:1.17
+    image: golang:1.21
     restart: unless-stopped
     depends_on:
-    - kafka
+      - kafka
     volumes:
-    - .:/app
-    - $GOPATH/pkg/mod:/go/pkg/mod
+      - .:/app
+      - $GOPATH/pkg/mod:/go/pkg/mod
     working_dir: /app
     command: go run main.go
 
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.0.1
+    image: confluentinc/cp-zookeeper:7.6.0
     restart: unless-stopped
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
 
   kafka:
-    image: confluentinc/cp-kafka:7.0.1
+    image: confluentinc/cp-kafka:7.6.0
     restart: unless-stopped
     depends_on:
-    - zookeeper
+      - zookeeper
     environment:
       KAFKA_LOG_RETENTION_MINUTES: 1440 # save data for 24hrs
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181

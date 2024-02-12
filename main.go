@@ -118,6 +118,11 @@ func createPublisher() message.Publisher {
 // createSubscriber is a helper function similar to the previous one, but in this case it creates a Subscriber.
 func createSubscriber(consumerGroup string) message.Subscriber {
 	config := sarama.NewConfig()
+	saramaVersion, err := sarama.ParseKafkaVersion("3.6.0")
+	if err != nil {
+		panic(err)
+	}
+	config.Version = saramaVersion
 	config.Consumer.Fetch.Default = 1024 * 1024
 	config.Consumer.Offsets.AutoCommit.Enable = true
 	config.Consumer.Offsets.AutoCommit.Interval = 1 * time.Second
