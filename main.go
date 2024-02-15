@@ -3,7 +3,12 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 	"time"
 
 	"github.com/IBM/sarama"
@@ -37,6 +42,10 @@ type processedEvent struct {
 
 func main() {
 	publisher := createPublisher()
+	saramaPublisher, err := createSaramaPublisher()
+	if err != nil {
+		panic(err)
+	}
 
 	// Subscriber is created with consumer group handler_1
 	subscriber := createSubscriber("handler_1")
@@ -89,12 +98,29 @@ func main() {
 		},
 	)
 
-	// Simulate incoming events in the background
-	go simulateEvents(publisher)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	if err := router.Run(context.Background()); err != nil {
-		panic(err)
-	}
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	// Simulate incoming events in the background
+	go simulateEvents(ctx, saramaPublisher, &wg)
+
+	go func() {
+		defer wg.Done()
+		if err := router.Run(ctx); err != nil {
+			panic(err)
+		}
+	}()
+
+	<-sig
+	cancel()
+
+	wg.Wait()
 }
 
 // createPublisher is a helper function that creates a Publisher, in this case - the Kafka Publisher.
@@ -113,6 +139,20 @@ func createPublisher() message.Publisher {
 	}
 
 	return kafkaPublisher
+}
+
+func createSaramaPublisher() (sarama.AsyncProducer, error) {
+	config := sarama.NewConfig()
+	saramaVersion, err := sarama.ParseKafkaVersion("3.6.0")
+	if err != nil {
+		panic(err)
+	}
+	config.Version = saramaVersion
+	config.Producer.Return.Successes = false
+	config.Producer.Flush.Bytes = 3000000
+	config.Producer.Flush.Messages = 50
+	config.Producer.Flush.Frequency = 100 * time.Millisecond
+	return sarama.NewAsyncProducer(brokers, config)
 }
 
 // createSubscriber is a helper function similar to the previous one, but in this case it creates a Subscriber.
@@ -153,7 +193,9 @@ func createSubscriber(consumerGroup string) message.Subscriber {
 }
 
 // simulateEvents produces events that will be later consumed.
-func simulateEvents(publisher message.Publisher) {
+func simulateEvents(ctx context.Context, publisher sarama.AsyncProducer, wg *sync.WaitGroup) {
+	defer wg.Done()
+
 	i := 0
 	for {
 		e := event{
@@ -165,15 +207,23 @@ func simulateEvents(publisher message.Publisher) {
 			panic(err)
 		}
 
-		err = publisher.Publish(consumeTopic, message.NewMessage(
+		saramaMsg, err := marshaler.Marshal(consumeTopic, message.NewMessage(
 			watermill.NewUUID(), // internal uuid of the message, useful for debugging
 			payload,
 		))
-		if err != nil {
-			panic(err)
-		}
 
-		i++
+		select {
+		case publisher.Input() <- saramaMsg:
+			i++
+		case err := <-publisher.Errors():
+			fmt.Println(err)
+		case <-ctx.Done():
+			// Close shuts down the producer and waits for any buffered messages to be flushed
+			if err := publisher.Close(); err != nil {
+				fmt.Println(err)
+			}
+			return
+		}
 
 		time.Sleep(time.Second)
 	}
