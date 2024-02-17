@@ -211,6 +211,7 @@ func simulateEvents(ctx context.Context, publisher sarama.AsyncProducer, wg *syn
 			watermill.NewUUID(), // internal uuid of the message, useful for debugging
 			payload,
 		))
+		// saramaMsg.Key = sarama.ByteEncoder([]byte("mykey"))
 
 		select {
 		case publisher.Input() <- saramaMsg:
