@@ -10,27 +10,22 @@ services:
       - $GOPATH/pkg/mod:/go/pkg/mod
     working_dir: /app
     command: go run main.go
-
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.6.0
-    restart: unless-stopped
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-
   kafka:
     image: confluentinc/cp-kafka:7.6.0
     restart: unless-stopped
-    depends_on:
-      - zookeeper
-    ports:
-      - 9093:9093
+    volumes:
+      - kafka_data:/var/lib/kafka/data
     environment:
+      KAFKA_PROCESS_ROLES: controller,broker
+      KAFKA_NODE_ID: 1
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@localhost:9093"
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      # KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      CLUSTER_ID: "ciWo7IWazngRchmPES6q5A==" # UUID for the Kafka cluster
       KAFKA_LOG_RETENTION_MINUTES: 1440 # save data for 24hrs
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:9093
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
-      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:9093
-      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       # This is required when you are running with a single-node cluster
       # specify the replication factor for the __consumer_offsets topic
       # __consumer_offsets topic preserves consumer offsets when consumer group commits offsets to Kafka
@@ -39,3 +34,6 @@ services:
       # Kafka will automatically create the topic with the default replication factor and number of partitions
       # which is true by default
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0 # No delay for consumer rebalancing
+volumes:
+  kafka_data:
