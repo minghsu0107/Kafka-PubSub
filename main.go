@@ -148,6 +148,7 @@ func createSaramaPublisher() (sarama.AsyncProducer, error) {
 		panic(err)
 	}
 	config.Version = saramaVersion
+	config.Producer.Partitioner = sarama.NewHashPartitioner
 	config.Producer.Return.Successes = false
 	config.Producer.Flush.Bytes = 3000000
 	config.Producer.Flush.Messages = 50
@@ -211,6 +212,9 @@ func simulateEvents(ctx context.Context, publisher sarama.AsyncProducer, wg *syn
 			watermill.NewUUID(), // internal uuid of the message, useful for debugging
 			payload,
 		))
+		if err != nil {
+			fmt.Println(err)
+		}
 		// saramaMsg.Key = sarama.ByteEncoder([]byte("mykey"))
 
 		select {
